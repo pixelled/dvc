@@ -113,7 +113,7 @@ saver = tf.train.Saver(max_to_keep=None)
 
 saver_psnr = tf.train.Saver(max_to_keep=None)
 latest = tf.train.latest_checkpoint(checkpoint_dir='./OpenDVC_PSNR_' + str(l * 32))
-saver_psnr.restore(sess, save_path=latest)
+#saver_psnr.restore(sess, save_path=latest)
 
 # Train
 iter = 0
