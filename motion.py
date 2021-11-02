@@ -1,49 +1,55 @@
 import tensorflow as tf
+import tensorflow_addons as tfa
 
 def convnet(im1_warp, im2, flow, layer):
 
-    with tf.variable_scope("flow_cnn_" + str(layer), reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("flow_cnn_" + str(layer), reuse=tf.compat.v1.AUTO_REUSE):
 
         input = tf.concat([im1_warp, im2, flow], axis=-1)
 
-        conv1 = tf.layers.conv2d(inputs=input, filters=32, kernel_size=[7, 7], padding="same",
-                                 activation=tf.nn.relu)
-        conv2 = tf.layers.conv2d(inputs=conv1, filters=64, kernel_size=[7, 7], padding="same",
-                                 activation=tf.nn.relu)
-        conv3 = tf.layers.conv2d(inputs=conv2, filters=32, kernel_size=[7, 7], padding="same",
-                                 activation=tf.nn.relu)
-        conv4 = tf.layers.conv2d(inputs=conv3, filters=16, kernel_size=[7, 7], padding="same",
-                                 activation=tf.nn.relu)
-        conv5 = tf.layers.conv2d(inputs=conv4, filters=2 , kernel_size=[7, 7], padding="same",
-                                 activation=None)
+        # conv1 = tf.compat.v1.layers.conv2d(inputs=input, filters=32, kernel_size=[7, 7], padding="same",
+        #                          activation=tf.nn.relu)
+        conv1 = tf.keras.layers.Conv2D(32, 7, padding="same", activation=tf.keras.activations.relu)(input);
+        # conv2 = tf.compat.v1.layers.conv2d(inputs=conv1, filters=64, kernel_size=[7, 7], padding="same",
+        #                          activation=tf.nn.relu)
+        conv2 = tf.keras.layers.Conv2D(64, 7, padding="same", activation=tf.keras.activations.relu)(conv1);
+        # conv3 = tf.compat.v1.layers.conv2d(inputs=conv2, filters=32, kernel_size=[7, 7], padding="same",
+        #                          activation=tf.nn.relu)
+        conv3 = tf.keras.layers.Conv2D(32, 7, padding="same", activation=tf.keras.activations.relu)(conv2);
+        # conv4 = tf.compat.v1.layers.conv2d(inputs=conv3, filters=16, kernel_size=[7, 7], padding="same",
+        #                          activation=tf.nn.relu)
+        conv4 = tf.keras.layers.Conv2D(16, 7, padding="same", activation=tf.keras.activations.relu)(conv3);
+        # conv5 = tf.compat.v1.layers.conv2d(inputs=conv4, filters=2 , kernel_size=[7, 7], padding="same",
+        #                          activation=None)
+        conv5 = tf.keras.layers.Conv2D(2, 7, padding="same", activation=None)(conv4);
 
     return conv5
 
 
 def loss(flow_course, im1, im2, layer):
 
-    flow = tf.image.resize_images(flow_course, [tf.shape(im1)[1], tf.shape(im2)[2]])
-    im1_warped = tf.contrib.image.dense_image_warp(im1, flow)
+    flow = tf.image.resize(flow_course, [tf.shape(input=im1)[1], tf.shape(input=im2)[2]])
+    im1_warped = tfa.image.dense_image_warp(im1, flow)
     res = convnet(im1_warped, im2, flow, layer)
     flow_fine = res + flow
 
-    im1_warped_fine = tf.contrib.image.dense_image_warp(im1, flow_fine)
-    loss_layer = tf.reduce_mean(tf.squared_difference(im1_warped_fine, im2))
+    im1_warped_fine = tfa.image.dense_image_warp(im1, flow_fine)
+    loss_layer = tf.reduce_mean(input_tensor=tf.math.squared_difference(im1_warped_fine, im2))
 
     return loss_layer, flow_fine
 
 
 def optical_flow(im1_4, im2_4, batch, h, w):
 
-    im1_3 = tf.layers.average_pooling2d(im1_4, pool_size=2, strides=2, padding='same')
-    im1_2 = tf.layers.average_pooling2d(im1_3, pool_size=2, strides=2, padding='same')
-    im1_1 = tf.layers.average_pooling2d(im1_2, pool_size=2, strides=2, padding='same')
-    im1_0 = tf.layers.average_pooling2d(im1_1, pool_size=2, strides=2, padding='same')
+    im1_3 = tf.keras.layers.average_pooling2d(pool_size=(2, 2), strides=2, padding='same')(im1_4)
+    im1_2 = tf.keras.layers.average_pooling2d(pool_size=(2, 2), strides=2, padding='same')(im1_3)
+    im1_1 = tf.keras.layers.average_pooling2d(pool_size=(2, 2), strides=2, padding='same')(im1_2)
+    im1_0 = tf.keras.layers.average_pooling2d(pool_size=(2, 2), strides=2, padding='same')(im1_1)
 
-    im2_3 = tf.layers.average_pooling2d(im2_4, pool_size=2, strides=2, padding='same')
-    im2_2 = tf.layers.average_pooling2d(im2_3, pool_size=2, strides=2, padding='same')
-    im2_1 = tf.layers.average_pooling2d(im2_2, pool_size=2, strides=2, padding='same')
-    im2_0 = tf.layers.average_pooling2d(im2_1, pool_size=2, strides=2, padding='same')
+    im2_3 = tf.keras.layers.average_pooling2d(pool_size=(2, 2), strides=2, padding='same')(im2_4)
+    im2_2 = tf.keras.layers.average_pooling2d(pool_size=(2, 2), strides=2, padding='same')(im2_3)
+    im2_1 = tf.keras.layers.average_pooling2d(pool_size=(2, 2), strides=2, padding='same')(im2_2)
+    im2_0 = tf.keras.layers.average_pooling2d(pool_size=(2, 2), strides=2, padding='same')(im2_1)
 
     flow_zero = tf.zeros([batch, h//16, w//16, 2])
 

@@ -11,8 +11,8 @@ from ms_ssim_np import MultiScaleSSIM
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-config = tf.ConfigProto(allow_soft_placement=True)
-sess = tf.Session(config=config)
+config = tf.compat.v1.ConfigProto(allow_soft_placement=True)
+sess = tf.compat.v1.Session(config=config)
 
 parser = argparse.ArgumentParser(
       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -49,11 +49,11 @@ Width = args.Width
 if (Height % 16 != 0) or (Width % 16 != 0):
     raise ValueError('Height and Width must be a mutiple of 16.')
 
-Y0_com = tf.placeholder(tf.float32, [batch_size, Height, Width, Channel])
+Y0_com = tf.compat.v1.placeholder(tf.float32, [batch_size, Height, Width, Channel])
 # Y1_raw = tf.placeholder(tf.float32, [batch_size, Height, Width, Channel])
 
-string_mv_tensor = tf.placeholder(tf.string, [])
-string_res_tensor = tf.placeholder(tf.string, [])
+string_mv_tensor = tf.compat.v1.placeholder(tf.string, [])
+string_res_tensor = tf.compat.v1.placeholder(tf.string, [])
 
 # Motion Decoding
 entropy_bottleneck_mv = tfc.EntropyBottleneck(dtype=tf.float32, name='entropy_bottleneck')
@@ -86,7 +86,7 @@ Y1_com = tf.clip_by_value(Res_hat + Y1_MC, 0, 1)
 #     quality = tf.math.reduce_mean(tf.image.ssim_multiscale(Y1_com, Y1_raw, max_val=1))
 
 
-saver = tf.train.Saver(max_to_keep=None)
+saver = tf.compat.v1.train.Saver(max_to_keep=None)
 model_path = './OpenDVC_model/' + args.mode + '_' + str(args.l) + '_model/model.ckpt'
 saver.restore(sess, save_path=model_path)
 

@@ -9,8 +9,8 @@ import MC_network
 import load
 import gc
 
-config = tf.ConfigProto(allow_soft_placement=True)
-sess = tf.Session(config=config)
+config = tf.compat.v1.ConfigProto(allow_soft_placement=True)
+sess = tf.compat.v1.Session(config=config)
 
 parser = argparse.ArgumentParser(
       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -36,11 +36,11 @@ lr_init = 1e-4
 
 folder = np.load('folder.npy')
 
-Y0_com = tf.placeholder(tf.float32, [batch_size, Height, Width, Channel])
-Y1_raw = tf.placeholder(tf.float32, [batch_size, Height, Width, Channel])
-learning_rate = tf.placeholder(tf.float32, [])
+Y0_com = tf.compat.v1.placeholder(tf.float32, [batch_size, Height, Width, Channel])
+Y1_raw = tf.compat.v1.placeholder(tf.float32, [batch_size, Height, Width, Channel])
+learning_rate = tf.compat.v1.placeholder(tf.float32, [])
 
-with tf.variable_scope("flow_motion"):
+with tf.compat.v1.variable_scope("flow_motion"):
 
     flow_tensor, _, _, _, _, _ = motion.optical_flow(Y0_com, Y1_raw, batch_size, Height, Width)
     # Y1_warp_0 = tf.contrib.image.dense_image_warp(Y0_com, flow_tensor)
@@ -79,11 +79,11 @@ Res_hat = CNN_img.Res_synthesis(res_latent_hat, num_filters=args.N)
 Y1_com = Res_hat + Y1_MC
 
 # Total number of bits divided by number of pixels.
-train_bpp_MV = tf.reduce_sum(tf.log(MV_likelihoods)) / (-np.log(2) * Height * Width * batch_size)
-train_bpp_Res = tf.reduce_sum(tf.log(Res_likelihoods)) / (-np.log(2) * Height * Width * batch_size)
+train_bpp_MV = tf.reduce_sum(input_tensor=tf.math.log(MV_likelihoods)) / (-np.log(2) * Height * Width * batch_size)
+train_bpp_Res = tf.reduce_sum(input_tensor=tf.math.log(Res_likelihoods)) / (-np.log(2) * Height * Width * batch_size)
 
 # Mean squared error across pixels.
-frame_msssim = tf.math.reduce_mean(tf.image.ssim_multiscale(Y1_com, Y1_raw, max_val=1))
+frame_msssim = tf.math.reduce_mean(input_tensor=tf.image.ssim_multiscale(Y1_com, Y1_raw, max_val=1))
 
 # The rate-distortion cost.
 l = args.l
@@ -91,27 +91,27 @@ l = args.l
 train_loss_total = l * (1 - frame_msssim) + (train_bpp_MV + train_bpp_Res)
 
 # Minimize loss and auxiliary loss, and execute update op.
-step = tf.train.create_global_step()
+step = tf.compat.v1.train.create_global_step()
 
-train_total = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(train_loss_total, global_step=step)
+train_total = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(train_loss_total, global_step=step)
 
-aux_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate*10.0)
+aux_optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate*10.0)
 aux_step = aux_optimizer.minimize(entropy_bottleneck_mv.losses[0])
 
-aux_optimizer2 = tf.train.AdamOptimizer(learning_rate=learning_rate*10.0)
+aux_optimizer2 = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate*10.0)
 aux_step2 = aux_optimizer2.minimize(entropy_bottleneck_res.losses[0])
 
 train_op = tf.group(train_total, aux_step, aux_step2,
                         entropy_bottleneck_mv.updates[0], entropy_bottleneck_res.updates[0])
 
-tf.summary.scalar('ms-ssim', frame_msssim)
-tf.summary.scalar('bits_total', train_bpp_MV + train_bpp_Res)
+tf.compat.v1.summary.scalar('ms-ssim', frame_msssim)
+tf.compat.v1.summary.scalar('bits_total', train_bpp_MV + train_bpp_Res)
 save_path = './OpenDVC_MS-SSIM_' + str(l)
 
-summary_writer = tf.summary.FileWriter(save_path, sess.graph)
-saver = tf.train.Saver(max_to_keep=None)
+summary_writer = tf.compat.v1.summary.FileWriter(save_path, sess.graph)
+saver = tf.compat.v1.train.Saver(max_to_keep=None)
 
-saver_psnr = tf.train.Saver(max_to_keep=None)
+saver_psnr = tf.compat.v1.train.Saver(max_to_keep=None)
 latest = tf.train.latest_checkpoint(checkpoint_dir='./OpenDVC_PSNR_' + str(l * 32))
 #saver_psnr.restore(sess, save_path=latest)
 
@@ -158,7 +158,7 @@ while(True):
 
         if iter % 500 == 0:
 
-             merged_summary_op = tf.summary.merge_all()
+             merged_summary_op = tf.compat.v1.summary.merge_all()
              summary_str = sess.run(merged_summary_op, feed_dict={Y0_com: F0_com/255.0,
                                                                   Y1_raw: F1_raw/255.0})
 

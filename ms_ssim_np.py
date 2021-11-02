@@ -29,13 +29,13 @@ def tf_msssim_np(img1, img2, data_format='NHWC'):
 
     if data_format == 'NCHW':
         def make_NHWC(x):
-            return tf.transpose(x, (0, 2, 3, 1), name='make_NHWC')
+            return tf.transpose(a=x, perm=(0, 2, 3, 1), name='make_NHWC')
         return tf_msssim_np(make_NHWC(img1), make_NHWC(img2), data_format='NHWC')
 
     assert img1.shape[3] == 3, 'Expected 3-channel images, got {}'.format(img1)
 
-    with tf.name_scope('ms-ssim_np'):
-        v = tf.py_func(_calc_msssim_orig, [img1, img2], tf.float32, stateful=False, name='MS-SSIM')
+    with tf.compat.v1.name_scope('ms-ssim_np'):
+        v = tf.compat.v1.py_func(_calc_msssim_orig, [img1, img2], tf.float32, stateful=False, name='MS-SSIM')
         v.set_shape(())
         return v
 
